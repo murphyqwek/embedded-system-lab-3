@@ -4,6 +4,22 @@
 #include "snake/game_types.h"
 #include <stddef.h>
 
+void Snake_Init(Snake *snake) {
+	initAllocPool();
+
+	SnakeCell *cell = allocSnake((Position){FIELD_WIDTH / 2, FIELD_HEIGHT / 2});
+
+	snake->length = 1;
+
+	snake->direction = DIR_LEFT;
+	snake->nextDirection = DIR_LEFT;
+
+	snake->head = cell;
+	snake->tail = cell;
+
+	FieldSet(cell->pos, CELL_SNAKE);
+}
+
 bool Snake_Move(Snake *snake) {
 	Position newHeadPosition = getNewHeadPosition(snake);
 
@@ -52,6 +68,8 @@ bool Snake_Grow(Snake *snake) {
 	if(newHead == NULL) {
 		return false;
 	}
+
+	snake->length++;
 
 	snake->direction = snake->nextDirection;
 

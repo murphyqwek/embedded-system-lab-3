@@ -3,4 +3,7 @@
 
 void StartGameTask(void* arguments);
 
+bool GameTick(void);
+void StartGame(void);
+
 #endif

@@ -21,6 +21,8 @@ typedef struct Snake {
 	struct SnakeCell *tail;
 } Snake;
 
+void Snake_Init(Snake *snake);
+
 bool Snake_Move(Snake *snake);
 bool Snake_Grow(Snake *snake);
 

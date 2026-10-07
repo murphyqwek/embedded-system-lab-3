@@ -19,3 +19,20 @@ void FieldSet(Position pos, CellType type) {
 	field[pos.y][pos.x] = type;
 	//TODO: не забыть обновить экран
 }
+
+int fillFreePositions(Position freePositions[]) {
+	int length = 0;
+
+	for(int y = 0; y < FIELD_HEIGHT; y++) {
+		for(int x = 0; x < FIELD_WIDTH; x++) {
+			if(field[y][x] != CELL_EMPTY) {
+				continue;
+			}
+
+			freePositions[length] = (Position){x, y};
+			length++;
+		}
+	}
+
+	return length;
+}

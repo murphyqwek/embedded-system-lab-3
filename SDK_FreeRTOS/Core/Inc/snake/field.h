@@ -11,4 +11,6 @@ void FieldInit(void);
 CellType FieldGet(Position pos);
 void FieldSet(Position pos, CellType type);
 
+int fillFreePositions(Position freePositions[]);
+
 #endif
