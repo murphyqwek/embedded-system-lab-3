@@ -1,12 +1,14 @@
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "snake/import.h"
 #include "snake/event.h"
 #include "snake/key_queue.h"
-#include "task.h"
 #include "kb.h"
 #include "portmacro.h"
 
 void StartTaskKeyboard(void * argument) {
-    uint8_t key_number, temp_value, Row[4] = {ROW1, ROW2, ROW3, ROW4};
+    uint8_t temp_value, Row[4] = {ROW1, ROW2, ROW3, ROW4};
     
     const TickType_t keyboardDelay = 25 / portTICK_PERIOD_MS;
     
@@ -21,6 +23,6 @@ void StartTaskKeyboard(void * argument) {
             }
         }
 
-        xTaskDelay(keyboardDelay);
+        vTaskDelay(keyboardDelay);
     }
 }

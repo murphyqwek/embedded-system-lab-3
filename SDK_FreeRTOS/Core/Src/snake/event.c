@@ -1,5 +1,7 @@
-#include "snake/event.h"
+#include "FreeRTOS.h"
 #include "event_groups.h"
+
+#include "snake/event.h"
 
 EventGroupHandle_t event;
 
