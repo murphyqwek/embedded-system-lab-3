@@ -16,13 +16,18 @@ void StartTaskKeyboard(void * argument) {
         for (int i = 0; i < 4; i++) {
             temp_value = Check_Row(Row[i]);
             switch (temp_value) {
-                case 0x04: appendKeyToQueue(i*3+1);
-                case 0x02: appendKeyToQueue(i*3+2);
-                case 0x01: appendKeyToQueue(i*3+3);
+                case 0x04: sendToQueue(i*3+1);
+                case 0x02: sendToQueue(i*3+2);
+                case 0x01: sendToQueue(i*3+3);
                 default: break;
             }
         }
 
         vTaskDelay(keyboardDelay);
     }
+}
+
+void sendToQueue(int key) {
+	appendKeyToQueue(key);
+	inputEvent();
 }
