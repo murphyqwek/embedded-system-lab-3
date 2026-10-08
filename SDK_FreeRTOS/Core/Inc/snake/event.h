@@ -1,6 +1,9 @@
 #ifndef GAME_EVENT_H
 #define GAME_EVENT_H
 
+#include "FreeRTOS.h"
+#include "event_groups.h"
+
 #define INPUT_EVENT (1 << 0)
 #define GAME_START_EVENT (1 << 1)
 #define GAME_TICK_EVENT (1 << 2)

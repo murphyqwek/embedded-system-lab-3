@@ -31,6 +31,6 @@ bool Snake_CheckCollision(Position newHeadPosition);
 
 Position getNewHeadPosition(Snake *snake);
 
-void setNewDirection(Snake *snake, int key);
+void Snake_SetNewDirection(Snake *snake, int key);
 
 #endif

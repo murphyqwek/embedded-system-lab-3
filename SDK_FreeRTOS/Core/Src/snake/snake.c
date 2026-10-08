@@ -2,6 +2,7 @@
 #include "snake/snake_alloc.h"
 #include "snake/field.h"
 #include "snake/game_types.h"
+#include "snake/util.h"
 #include <stddef.h>
 
 void Snake_Init(Snake *snake) {
@@ -20,6 +21,9 @@ void Snake_Init(Snake *snake) {
 	FieldSet(cell->pos, CELL_SNAKE);
 }
 
+//Возвращает true если удалось переместить змейку без коллизии
+//Голова не может удариться об хвост
+//Возвращает false, если голова ударилась об тело
 bool Snake_Move(Snake *snake) {
 	Position newHeadPosition = getNewHeadPosition(snake);
 
@@ -56,6 +60,8 @@ bool Snake_Move(Snake *snake) {
 	return true;
 }
 
+//Возвращает true, если удалось увеличить змейку без колизии
+//Возвращает false, если произошла коллизия или не удалось выделить новую клетку змейки
 bool Snake_Grow(Snake *snake) {
 	Position newHeadPosition = getNewHeadPosition(snake);
 
@@ -85,11 +91,8 @@ bool Snake_Grow(Snake *snake) {
 	return true;
 }
 
-
-
 bool Snake_CheckCollisionWithoutTail(Snake *snake, Position newHeadPosition) {
-	if(snake->tail->pos.x == newHeadPosition.x &&
-	   snake->tail->pos.y == newHeadPosition.y) {
+	if(comparePositions(snake->tail->pos, newHeadPosition)) {
 		return false;
 	}
 
@@ -130,7 +133,7 @@ Position getNewHeadPosition(Snake *snake) {
 }
 
 
-void setNewDirection(Snake *snake, int key) {
+void Snake_SetNewDirection(Snake *snake, int key) {
 	switch(key) {
 		case UP_KEY:
 			if(snake->direction != DIR_DOWN) snake->nextDirection = DIR_UP;

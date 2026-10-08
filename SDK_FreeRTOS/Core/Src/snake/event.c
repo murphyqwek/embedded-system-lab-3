@@ -1,6 +1,3 @@
-#include "FreeRTOS.h"
-#include "event_groups.h"
-
 #include "snake/event.h"
 
 EventGroupHandle_t event;
@@ -23,4 +20,8 @@ void gameTickEvent() {
 
 void clearEvents() {
     xEventGroupClearBits(event, INPUT_EVENT | GAME_START_EVENT | GAME_TICK_EVENT);
+}
+
+EventGroupHandle_t getEvent() {
+	return event;
 }

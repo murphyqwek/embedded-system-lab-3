@@ -32,4 +32,9 @@ typedef enum {
 	GAME_WIN
 } GameState;
 
+typedef enum {
+	WIN,
+	LOSE
+} EndGameState;
+
 #endif
