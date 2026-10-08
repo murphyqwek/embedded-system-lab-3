@@ -3,186 +3,127 @@
 #include "snake/snake.h"
 #include "snake/event.h"
 #include "snake/key_queue.h"
-#include "snake/game_types.h"
 #include "snake/game.h"
 #include "snake/render.h"
-#include "portmacro.h"
+#include "snake/util.h"
+#include "oled.h"
+#include <stdlib.h>
 
-//Я забыл, что мы должны инициализировать
-//Мне было впдалу везде переписывать на &snake, поэтому сделаем так
-Snake snakeStorage;
-Snake *snake = &snakeStorage;
+static Snake snakeStorage;
+static Snake *snake = &snakeStorage;
 static GameState state = GAME_START_MENU;
+static Position apple;
+static TimerHandle_t ticksTimer;
+static TimerHandle_t startGameTimer;
 
-Position apple;
-
-TimerHandle_t ticksTimer;
-TimerHandle_t startGameTimer;
-
+static void drawGameField(void) {
+    renderStartField();
+    for (int y = 0; y < FIELD_HEIGHT; y++) {
+        for (int x = 0; x < FIELD_WIDTH; x++) {
+            renderUpdateScreen(x, y, FieldGet((Position){x, y}));
+        }
+    }
+    renderScore(snake->length - 1);
+    oled_UpdateScreen();
+}
 
 void timerTicksHandler(TimerHandle_t handle) {
-	gameTickEvent();
+    (void)handle;
+    gameTickEvent();
 }
 
 void timerStartGameHandler(TimerHandle_t handle) {
-	gameStartEvent();
+    (void)handle;
+    gameStartEvent();
 }
 
-void StartGameTask(void* arguments) {
-	state = GAME_START_MENU;
+void StartGameTask(void *arguments) {
+    (void)arguments;
+    state = GAME_START_MENU;
+    ticksTimer = xTimerCreate("Game tick", pdMS_TO_TICKS(TICKS_MS),
+                             pdTRUE, NULL, timerTicksHandler);
+    startGameTimer = xTimerCreate("Game start", pdMS_TO_TICKS(START_GAME_DELAY_MS),
+                                 pdFALSE, NULL, timerStartGameHandler);
+    if (ticksTimer == NULL || startGameTimer == NULL) error();
 
-	EventGroupHandle_t event = getEvent();
-
-
-	//Настраиваем таймеры
-	ticksTimer = xTimerCreate("TicksTimer",
-					 pdMS_TO_TICKS(TICKS_MS),
-					 pdTRUE,
-					 (void *) 0,
-					 timerTicksHandler);
-
-	startGameTimer = xTimerCreate("StartGameTimer",
-								  pdMS_TO_TICKS(START_GAME_DELAY_MS),
-								  pdFALSE,
-								  (void *) 0,
-								  timerStartGameHandler);
-
-	if(startGameTimer == NULL || ticksTimer == NULL) {
-		error();
-	}
-
-	renderStartMenu();
-
-	for(;;) {
-		//Ждем событий
-		EventBits_t bits =  xEventGroupWaitBits(event,
-												ALL_EVENTS,
-												pdTRUE,
-												pdFALSE,
-												portMAX_DELAY);
-
-		if(bits & GAME_START_EVENT) {
-			StartGame();
-		}
-
-		if(bits & GAME_TICK_EVENT) {
-			if(GameTick()) {
-				xTimerStop(ticksTimer, 0);
-				clearEvents();
-
-				EndGameState endState = state == GAME_WIN ? WIN : LOSE;
-
-				renderEndGameMenu(endState);
-
-				continue;
-			}
-		}
-
-		if(bits & INPUT_EVENT) {
-			int key = readKeyFromQueue();
-
-			if(state == GAME_RUNNING ||
-			   state == GAME_STARTING) {
-				changeDiretion(key);
-
-				continue;
-			}
-
-			enterAnyKey();
-		}
-	}
+    renderStartMenu();
+    for (;;) {
+        EventBits_t bits = xEventGroupWaitBits(getEvent(), ALL_EVENTS,
+                                               pdTRUE, pdFALSE, portMAX_DELAY);
+        /* Input is applied before movement when both events arrive together. */
+        if (bits & INPUT_EVENT) {
+            int key = readKeyFromQueue();
+            if (key != EMPTY_QUEUE) {
+                if (state == GAME_RUNNING || state == GAME_STARTING) {
+                    changeDiretion(key);
+                } else {
+                    enterAnyKey();
+                    continue;
+                }
+            }
+        }
+        if ((bits & GAME_START_EVENT) && state == GAME_STARTING) StartGame();
+        if ((bits & GAME_TICK_EVENT) && state == GAME_RUNNING) {
+            if (GameTick()) {
+                if (xTimerStop(ticksTimer, portMAX_DELAY) != pdPASS) error();
+                clearEvents();
+                clearKeyQueue();
+                renderEndGameMenu(state == GAME_WIN ? WIN : LOSE, snake->length - 1);
+            } else {
+                drawGameField();
+            }
+        }
+    }
 }
 
 void enterAnyKey(void) {
-	//По сути, мы из любого состояния мы должны перейти в
-	//начало игры
-
-	FieldInit();
-	Snake_Init(snake);
-
-	if(!generateNewApplePosition(&apple)) {
-		error();
-	}
-
-	FieldSet(apple, CELL_APPLE);
-
-	renderStartField();
-
-	state = GAME_STARTING;
-
-	xTimerStart(startGameTimer, 0);
+    /* Human timing supplies a different seed for each new round. */
+    srand((unsigned int)xTaskGetTickCount());
+    FieldInit();
+    Snake_Init(snake);
+    if (!generateNewApplePosition(&apple)) error();
+    FieldSet(apple, CELL_APPLE);
+    state = GAME_STARTING;
+    drawGameField();
+    if (xTimerStart(startGameTimer, portMAX_DELAY) != pdPASS) error();
 }
 
 void changeDiretion(int key) {
-	Snake_SetNewDirection(snake, key);
+    Snake_SetNewDirection(snake, key);
 }
 
-//Возвращает true, если нам нужно очистить событие
+/* true means that the round has ended. */
 bool GameTick(void) {
-	//TODO: прописать логику тика
-
-	//Проверка, что голова находится на яблоке
-	if(comparePositions(snake->head->pos, apple)) {
-		//Пытаемся увеличить змейку
-		if(!Snake_Grow(snake)) {
-			//Не удалось - коллизия
-			state = GAME_OVER;
-
-			return true;
-		}
-
-		//Удалось увеличить
-		//Проверяем на победу
-		if(snake->length == FIELD_CELLS) {
-			state = GAME_WIN;
-			return true;
-		}
-
-		//Генерируем новое яблоко
-		if(generateNewApplePosition(&apple)) {
-			FieldSet(apple, CELL_APPLE);
-		}
-		else {
-			//По каким-то причинам не удалось создать яблоко
-			error();
-		}
-
-		return false;
-	}
-
-	//Пытаемся переместить змейку
-	if(!Snake_Move(snake)) {
-		//Коллизия
-		state = GAME_OVER;
-
-		return true;
-	}
-
-	return false;
+    if (state != GAME_RUNNING) return false;
+    Position next = getNewHeadPosition(snake);
+    if (comparePositions(next, apple)) {
+        if (!Snake_Grow(snake)) {
+            state = GAME_OVER;
+            return true;
+        }
+        if (snake->length == FIELD_CELLS) {
+            state = GAME_WIN;
+            return true;
+        }
+        if (!generateNewApplePosition(&apple)) error();
+        FieldSet(apple, CELL_APPLE);
+    } else if (!Snake_Move(snake)) {
+        state = GAME_OVER;
+        return true;
+    }
+    return false;
 }
 
 void StartGame(void) {
-	state = GAME_RUNNING;
-
-	//Запускаем таймер
-	xTimerStart(ticksTimer, 0);
+    state = GAME_RUNNING;
+    if (xTimerStart(ticksTimer, portMAX_DELAY) != pdPASS) error();
 }
 
-
-void error() {
-	if(startGameTimer != NULL) {
-		xTimerStop(startGameTimer, 0);
-	}
-
-	if(ticksTimer != NULL) {
-		xTimerStop(ticksTimer, 0);
-	}
-
-	clearEvents();
-	renderError();
-
-	vTaskSuspend(NULL);
+void error(void) {
+    if (startGameTimer != NULL) (void)xTimerStop(startGameTimer, portMAX_DELAY);
+    if (ticksTimer != NULL) (void)xTimerStop(ticksTimer, portMAX_DELAY);
+    clearEvents();
+    clearKeyQueue();
+    renderError();
+    for (;;) vTaskSuspend(NULL);
 }
-
-
-

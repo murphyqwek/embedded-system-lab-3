@@ -123,7 +123,9 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
-  oled_Init();
+  if (!oled_Init()) {
+    Error_Handler();
+  }
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -215,8 +217,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-
+  __disable_irq();
+  while (1) {}
   /* USER CODE END Error_Handler_Debug */
 }
 

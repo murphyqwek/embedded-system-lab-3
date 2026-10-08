@@ -19,7 +19,6 @@ void timerStartGameHandler(TimerHandle_t handle);
 void enterAnyKey(void);
 void changeDiretion(int key);
 
-//Нужно передать сюда текст ошибки
-void error();
+void error(void);
 
 #endif

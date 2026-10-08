@@ -48,210 +48,41 @@
   */
 /* USER CODE END Header */
 
-/* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "task.h"
-#include "main.h"
-#include "cmsis_os.h"
+#include "snake/game.h"
+#include "snake/import.h"
+#include "snake/event.h"
+#include "snake/key_queue.h"
+#include "i2c.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */     
-#include "usart.h"
-#include <string.h>
-/* USER CODE END Includes */
+void configureTimerForRunTimeStats(void) {}
+unsigned long getRunTimeCounterValue(void) { return 0; }
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN Variables */
-
-/* USER CODE END Variables */
-osThreadId Task_LED1Handle;
-osThreadId Task_UARTHandle;
-osThreadId Task_LED2Handle;
-osMessageQId myQueue01Handle;
-
-/* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN FunctionPrototypes */
-   
-/* USER CODE END FunctionPrototypes */
-
-void StartTaskLED1(void const * argument);
-void StartTaskUART(void const * argument);
-void StartTasLED2(void const * argument);
-
-void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-
-/* GetIdleTaskMemory prototype (linked to static allocation support) */
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
-
-/* Hook prototypes */
-void configureTimerForRunTimeStats(void);
-unsigned long getRunTimeCounterValue(void);
-
-/* USER CODE BEGIN 1 */
-/* Functions needed when configGENERATE_RUN_TIME_STATS is on */
-__weak void configureTimerForRunTimeStats(void)
-{
-
+void vApplicationGetIdleTaskMemory(StaticTask_t **tcb, StackType_t **stack,
+                                  uint32_t *size) {
+    static StaticTask_t idleTcb;
+    static StackType_t idleStack[configMINIMAL_STACK_SIZE];
+    *tcb = &idleTcb;
+    *stack = idleStack;
+    *size = configMINIMAL_STACK_SIZE;
 }
 
-__weak unsigned long getRunTimeCounterValue(void)
-{
-return 0;
+void vApplicationGetTimerTaskMemory(StaticTask_t **tcb, StackType_t **stack,
+                                   uint32_t *size) {
+    static StaticTask_t timerTcb;
+    static StackType_t timerStack[configTIMER_TASK_STACK_DEPTH];
+    *tcb = &timerTcb;
+    *stack = timerStack;
+    *size = configTIMER_TASK_STACK_DEPTH;
 }
-/* USER CODE END 1 */
 
-/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
-static StaticTask_t xIdleTaskTCBBuffer;
-static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
-  
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
-{
-  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
-  *ppxIdleTaskStackBuffer = &xIdleStack[0];
-  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
-  /* place for user code */
-}                   
-/* USER CODE END GET_IDLE_TASK_MEMORY */
-
-/**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
 void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
-
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
-
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
-
-  /* Create the queue(s) */
-  /* definition and creation of myQueue01 */
-  osMessageQDef(myQueue01, 16, uint16_t);
-  myQueue01Handle = osMessageCreate(osMessageQ(myQueue01), NULL);
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
-
-  /* Create the thread(s) */
-  /* definition and creation of Task_LED1 */
-  osThreadDef(Task_LED1, StartTaskLED1, osPriorityNormal, 0, 128);
-  Task_LED1Handle = osThreadCreate(osThread(Task_LED1), NULL);
-
-  /* definition and creation of Task_UART */
-  osThreadDef(Task_UART, StartTaskUART, osPriorityNormal, 0, 128);
-  Task_UARTHandle = osThreadCreate(osThread(Task_UART), NULL);
-
-  /* definition and creation of Task_LED2 */
-  osThreadDef(Task_LED2, StartTasLED2, osPriorityNormal, 0, 128);
-  Task_LED2Handle = osThreadCreate(osThread(Task_LED2), NULL);
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  vQueueAddToRegistry(myQueue01Handle, "queue1");
-  /* USER CODE END RTOS_THREADS */
-
+    initEvents();
+    initKeyQueue();
+    I2C1_InitMutex();
+    BaseType_t result = xTaskCreate(StartGameTask, "Snake", 768, NULL, 2, NULL);
+    configASSERT(result == pdPASS);
+    result = xTaskCreate(StartTaskKeyboard, "Keyboard", 256, NULL, 2, NULL);
+    configASSERT(result == pdPASS);
 }
-
-/* USER CODE BEGIN Header_StartTaskLED1 */
-/**
-  * @brief  Function implementing the Task_LED1 thread.
-  * @param  argument: Not used 
-  * @retval None
-  */
-/* USER CODE END Header_StartTaskLED1 */
-void StartTaskLED1(void const * argument)
-{
-  /* USER CODE BEGIN StartTaskLED1 */
-  /* Infinite loop */
-  uint32_t state;
-  for(;;)
-  {
-	  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-	  if (HAL_GPIO_ReadPin(GPIOD,GPIO_PIN_15) == GPIO_PIN_SET) {
-		  state = 0x01;
-		  osMessagePut(myQueue01Handle, state, 100);
-	  } else {
-		  state = 0x00;
-		  osMessagePut(myQueue01Handle, state, 100);
-	  }
-	  osDelay(500);
-  }
-  /* USER CODE END StartTaskLED1 */
-}
-
-/* USER CODE BEGIN Header_StartTaskUART */
-/**
-* @brief Function implementing the Task_UART thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTaskUART */
-void StartTaskUART(void const * argument)
-{
-  /* USER CODE BEGIN StartTaskUART */
-  /* Infinite loop */
-	osEvent event;
-	char *state;
-	for(;;)
-	  {
-		event = osMessageGet(myQueue01Handle, 100);
-		if (event.status == osEventMessage) {
-			state = event.value.v == 0x00 ? "reset\n\r" : "set\n\r";
-			HAL_UART_Transmit(&huart1, (uint8_t *)state, strlen(state), 100);
-		}
-		osDelay(1);
-	  }
-  /* USER CODE END StartTaskUART */
-}
-
-/* USER CODE BEGIN Header_StartTasLED2 */
-/**
-* @brief Function implementing the Task_LED2 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTasLED2 */
-void StartTasLED2(void const * argument)
-{
-  /* USER CODE BEGIN StartTasLED2 */
-  /* Infinite loop */
-  for(;;)
-  {
-	  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-	  osDelay(400);
-  }
-  /* USER CODE END StartTasLED2 */
-}
-
-/* Private application code --------------------------------------------------*/
-/* USER CODE BEGIN Application */
-
-/* USER CODE END Application */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

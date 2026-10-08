@@ -1,4 +1,3 @@
-#include "FreeRTOS.h"
 #include "snake/game_types.h"
 #include "snake/field.h"
 
@@ -17,7 +16,6 @@ CellType FieldGet(Position pos) {
 }
 void FieldSet(Position pos, CellType type) {
 	field[pos.y][pos.x] = type;
-	//TODO: не забыть обновить экран
 }
 
 int fillFreePositions(Position freePositions[]) {
