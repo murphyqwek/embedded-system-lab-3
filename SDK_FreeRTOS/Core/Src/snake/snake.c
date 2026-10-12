@@ -134,18 +134,27 @@ Position getNewHeadPosition(Snake *snake) {
 
 
 void Snake_SetNewDirection(Snake *snake, int key) {
-	switch(key) {
-		case UP_KEY:
-			if(snake->direction != DIR_DOWN) snake->nextDirection = DIR_UP;
-			break;
-		case DOWN_KEY:
-			if(snake->direction != DIR_UP) snake->nextDirection = DIR_DOWN;
-			break;
-		case LEFT_KEY:
-			if(snake->direction != DIR_RIGHT) snake->nextDirection = DIR_LEFT;
-			break;
-		case RIGHT_KEY:
-			if(snake->direction != DIR_LEFT) snake->nextDirection = DIR_RIGHT;
-			break;
-	}
+    bool canReverse = snake->length == 1;
+
+    switch (key) {
+        case UP_KEY:
+            if (canReverse || snake->direction != DIR_DOWN)
+                snake->nextDirection = DIR_UP;
+            break;
+
+        case DOWN_KEY:
+            if (canReverse || snake->direction != DIR_UP)
+                snake->nextDirection = DIR_DOWN;
+            break;
+
+        case LEFT_KEY:
+            if (canReverse || snake->direction != DIR_RIGHT)
+                snake->nextDirection = DIR_LEFT;
+            break;
+
+        case RIGHT_KEY:
+            if (canReverse || snake->direction != DIR_LEFT)
+                snake->nextDirection = DIR_RIGHT;
+            break;
+    }
 }

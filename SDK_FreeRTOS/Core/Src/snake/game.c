@@ -101,7 +101,7 @@ bool GameTick(void) {
             state = GAME_OVER;
             return true;
         }
-        if (snake->length == FIELD_CELLS) {
+        if (snake->length == 5) {
             state = GAME_WIN;
             return true;
         }
