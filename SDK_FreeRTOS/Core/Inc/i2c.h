@@ -37,6 +37,9 @@ extern I2C_HandleTypeDef hi2c1;
 /* USER CODE END Private defines */
 
 void MX_I2C1_Init(void);
+void I2C1_InitMutex(void);
+void I2C1_Lock(void);
+void I2C1_Unlock(void);
 
 /* USER CODE BEGIN Prototypes */
 

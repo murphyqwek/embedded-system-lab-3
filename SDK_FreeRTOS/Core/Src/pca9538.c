@@ -35,9 +35,8 @@ HAL_StatusTypeDef PCA9538_Check_DefaultConfig(uint16_t addr) {
 	if( ret != HAL_OK ){
 		UART_Transmit((uint8_t*)"Can't read default config\n");
 	}
-	else if ( buf[1] != 0xFF && buf[2] != 0xFF && buf[3] != 0xFF ) {
+	else if ( buf[1] != 0xFF || buf[2] != 0xFF || buf[3] != 0xFF ) {
 		UART_Transmit((uint8_t*)"Non-reset config\n");
-		UART_Transmit(buf);
 		ret = HAL_ERROR;
 	}
 

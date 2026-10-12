@@ -19,6 +19,30 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "i2c.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+
+static SemaphoreHandle_t i2cMutex;
+
+void I2C1_InitMutex(void) {
+    i2cMutex = xSemaphoreCreateMutex();
+    configASSERT(i2cMutex != NULL);
+}
+
+void I2C1_Lock(void) {
+    /* OLED initialization runs before the scheduler and mutex creation. */
+    if (i2cMutex != NULL) {
+        BaseType_t result = xSemaphoreTake(i2cMutex, portMAX_DELAY);
+        configASSERT(result == pdTRUE);
+    }
+}
+
+void I2C1_Unlock(void) {
+    if (i2cMutex != NULL) {
+        BaseType_t result = xSemaphoreGive(i2cMutex);
+        configASSERT(result == pdTRUE);
+    }
+}
 
 /* USER CODE BEGIN 0 */
 

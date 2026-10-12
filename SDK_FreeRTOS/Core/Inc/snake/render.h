@@ -6,9 +6,9 @@
 void renderStartMenu(void);
 void renderStartField(void);
 void renderUpdateScreen(int x, int y, CellType cell);
-void renderEndGameMenu(EndGameState state);
+void renderScore(int score);
+void renderEndGameMenu(EndGameState state, int score);
 
-//Нужно написать функцию вывода ошибки
-void renderError();
+void renderError(void);
 
 #endif

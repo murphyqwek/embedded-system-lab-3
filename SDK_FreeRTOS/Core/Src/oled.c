@@ -7,7 +7,9 @@ static OLED_t OLED;
 
 
 static void oled_WriteCommand(uint8_t command) {
-	HAL_I2C_Mem_Write(&hi2c1,OLED_I2C_ADDR,0x00,1,&command,1,10);
+	if (HAL_I2C_Mem_Write(&hi2c1,OLED_I2C_ADDR,0x00,1,&command,1,10) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 
@@ -16,7 +18,7 @@ uint8_t oled_Init(void) {
 
 	oled_WriteCommand(0xAE);
 	oled_WriteCommand(0x20);
-	oled_WriteCommand(0x10);
+	oled_WriteCommand(0x02); /* Page addressing, matching oled_UpdateScreen(). */
 	oled_WriteCommand(0xB0);
 	oled_WriteCommand(0xC8);
 	oled_WriteCommand(0x00);
@@ -66,14 +68,18 @@ void oled_Fill(OLED_COLOR color) {
 
 void oled_UpdateScreen(void) {
 	uint8_t i;
+	I2C1_Lock();
 
 	for (i = 0; i < 8; i++) {
 		oled_WriteCommand(0xB0 + i);
 		oled_WriteCommand(0x00);
 		oled_WriteCommand(0x10);
 
-		HAL_I2C_Mem_Write(&hi2c1,OLED_I2C_ADDR,0x40,1,&OLED_Buffer[OLED_WIDTH * i],OLED_WIDTH,100);
+		if (HAL_I2C_Mem_Write(&hi2c1,OLED_I2C_ADDR,0x40,1,&OLED_Buffer[OLED_WIDTH * i],OLED_WIDTH,100) != HAL_OK) {
+			Error_Handler();
+		}
 	}
+	I2C1_Unlock();
 }
 
 void oled_DrawPixel(uint8_t x, uint8_t y, OLED_COLOR color) {
@@ -111,11 +117,12 @@ void oled_DrawSquare(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, OLED_COLOR 
 char oled_WriteChar(char ch, FontDef Font, OLED_COLOR color) {
 	uint32_t i, b, j;
 
-	if (OLED_WIDTH <= (OLED.CurrentX + Font.FontWidth) ||
-			OLED_HEIGHT <= (OLED.CurrentY + Font.FontHeight)) {
+	if (OLED_WIDTH < (OLED.CurrentX + Font.FontWidth) ||
+			OLED_HEIGHT < (OLED.CurrentY + Font.FontHeight)) {
 		return 0;
 	}
 
+	if ((unsigned char)ch < 32 || (unsigned char)ch > 126) ch = '?';
 	for (i = 0; i < Font.FontHeight; i++) {
 		b = Font.data[(ch - 32) * Font.FontHeight + i];
 		for (j = 0; j < Font.FontWidth; j++) {

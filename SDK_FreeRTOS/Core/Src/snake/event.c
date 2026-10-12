@@ -4,6 +4,7 @@ EventGroupHandle_t event;
 
 void initEvents() {
     event = xEventGroupCreate();
+    configASSERT(event != NULL);
 }
 
 void inputEvent() {
