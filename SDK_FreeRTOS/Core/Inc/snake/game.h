@@ -7,6 +7,7 @@
 
 #define TICKS_MS 300
 #define START_GAME_DELAY_MS 2000
+#define MIN_GAME_TICKS_MS 30
 
 void StartGameTask(void* arguments);
 

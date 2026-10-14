@@ -74,10 +74,12 @@ _Static_assert(sizeof(megalovania_melody) == sizeof(megalovania_delays),
 void StartMusicTask(void *argument) {
     (void)argument;
     Buzzer_Init();
+
+
     for (;;) {
         for (unsigned int i = 0;
              i < sizeof(megalovania_melody) / sizeof(megalovania_melody[0]); ++i) {
-            Buzzer_SetTone(megalovania_melody[i]);
+            Buzzer_SetTone(megalovania_melody[i] * 4U);
             vTaskDelay(pdMS_TO_TICKS(1920U / megalovania_delays[i]));
             Buzzer_SetTone(0);
             vTaskDelay(pdMS_TO_TICKS(10));

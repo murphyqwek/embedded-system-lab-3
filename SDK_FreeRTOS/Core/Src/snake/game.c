@@ -16,6 +16,8 @@ static Position apple;
 static TimerHandle_t ticksTimer;
 static TimerHandle_t startGameTimer;
 
+static int game_tick_ms = TICKS_MS;
+
 static void drawGameField(void) {
     renderStartField();
     for (int y = 0; y < FIELD_HEIGHT; y++) {
@@ -40,7 +42,10 @@ void timerStartGameHandler(TimerHandle_t handle) {
 void StartGameTask(void *arguments) {
     (void)arguments;
     state = GAME_START_MENU;
-    ticksTimer = xTimerCreate("Game tick", pdMS_TO_TICKS(TICKS_MS),
+
+    game_tick_ms = TICKS_MS;
+
+    ticksTimer = xTimerCreate("Game tick", pdMS_TO_TICKS(game_tick_ms),
                              pdTRUE, NULL, timerTicksHandler);
     startGameTimer = xTimerCreate("Game start", pdMS_TO_TICKS(START_GAME_DELAY_MS),
                                  pdFALSE, NULL, timerStartGameHandler);
@@ -85,6 +90,7 @@ void enterAnyKey(void) {
     FieldSet(apple, CELL_APPLE);
     state = GAME_STARTING;
     drawGameField();
+    game_tick_ms = TICKS_MS;
     if (xTimerStart(startGameTimer, portMAX_DELAY) != pdPASS) error();
 }
 
@@ -101,12 +107,22 @@ bool GameTick(void) {
             state = GAME_OVER;
             return true;
         }
-        if (snake->length == 5) {
+        if (snake->length == 12) {
             state = GAME_WIN;
             return true;
         }
         if (!generateNewApplePosition(&apple)) error();
         FieldSet(apple, CELL_APPLE);
+
+        game_tick_ms = game_tick_ms * 80 / 100;
+
+        if(game_tick_ms < MIN_GAME_TICKS_MS) {
+        	game_tick_ms = MIN_GAME_TICKS_MS;
+        }
+
+        if (xTimerChangePeriod(ticksTimer, pdMS_TO_TICKS(game_tick_ms), 0) != pdPASS) {
+            error();
+        }
     } else if (!Snake_Move(snake)) {
         state = GAME_OVER;
         return true;

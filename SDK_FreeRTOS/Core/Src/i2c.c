@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "i2c.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "semphr.h"
 
 static SemaphoreHandle_t i2cMutex;
