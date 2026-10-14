@@ -55,6 +55,7 @@
 #include "snake/event.h"
 #include "snake/key_queue.h"
 #include "i2c.h"
+#include "music.h"
 
 void configureTimerForRunTimeStats(void) {}
 unsigned long getRunTimeCounterValue(void) { return 0; }
@@ -84,5 +85,7 @@ void MX_FREERTOS_Init(void) {
     BaseType_t result = xTaskCreate(StartGameTask, "Snake", 768, NULL, 2, NULL);
     configASSERT(result == pdPASS);
     result = xTaskCreate(StartTaskKeyboard, "Keyboard", 256, NULL, 2, NULL);
+    configASSERT(result == pdPASS);
+    result = xTaskCreate(StartMusicTask, "Music", 256, NULL, 1, NULL);
     configASSERT(result == pdPASS);
 }
